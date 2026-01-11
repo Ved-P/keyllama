@@ -8,9 +8,9 @@ const DEBUG = true;
 export function log(tag: string, data?: any) {
     if (!DEBUG) return;
     if (data !== undefined) {
-        console.log(`[Keyllama][${tag}]`, data);
+        console.log(`[CogNix][${tag}]`, data);
     } else {
-        console.log(`[Keyllama][${tag}]`);
+        console.log(`[CogNix][${tag}]`);
     }
 }
 
@@ -205,7 +205,7 @@ ${JSON.stringify(summary, null, 2)}
         analysis ||= this.cachedAnalysis || { score: 50, reasons: ['No analysis available'] };
 
         console.log('═══════════════════════════════════════════════════════════');
-        console.log('📊 Keyllama Final Human Likelihood Summary (LLM)');
+        console.log('📊 CogNix Final Human Likelihood Summary (LLM)');
         console.log('═══════════════════════════════════════════════════════════');
         console.log(`Human Likelihood Score: ${analysis.score}/100`);
         console.log('Reasons:');
@@ -230,7 +230,7 @@ ${JSON.stringify(summary, null, 2)}
         try {
             // Optional: include session context
             const context = `
-You are Keyllama, an AI assistant helping a user with coding. 
+You are CogNix, an AI assistant helping a user with coding. 
 Current session stats:
 Total edits: ${this.session.totalEditEvents}, 
 Chars inserted: ${this.session.charsInserted}, 

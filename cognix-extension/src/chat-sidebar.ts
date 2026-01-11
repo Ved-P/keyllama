@@ -196,7 +196,7 @@ export class ChatSidebarProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
     <div class="chat-container">
-        <h3>🦙 Keyllama Chat</h3>
+        <h3>🧠 CogNix Chat</h3>
         <div class="messages" id="messages">
             <div class="message ai">Hello! How can I help you today?</div>
         </div>

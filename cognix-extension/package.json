@@ -1,7 +1,7 @@
 {
   "name": "keyllama",
-  "displayName": "keyllama",
-  "description": "A keylogger to detect whether LLMs are being used to generate code.",
+  "displayName": "CogNix",
+  "description": "An AI-assisted learning tool that helps educators understand how students use AI in their coding workflow.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.106.1"
@@ -18,7 +18,7 @@
       "activitybar": [
         {
           "id": "keyllama",
-          "title": "Keyllama",
+          "title": "CogNix",
           "icon": "$(comment-discussion)"
         }
       ]
@@ -36,26 +36,26 @@
       {
         "command": "keyllama.showStats",
         "title": "Show Keystroke Statistics",
-        "category": "Keyllama"
+        "category": "CogNix"
       },
       {
         "command": "keyllama.resetSession",
         "title": "Reset Session",
-        "category": "Keyllama"
+        "category": "CogNix"
       },
       {
         "command": "keyllama.exportStats",
         "title": "Export Statistics",
-        "category": "Keyllama"
+        "category": "CogNix"
       },
       {
         "command": "keyllama.openChat",
-        "title": "Open Keyllama AI Chat"
+        "title": "Open CogNix AI Chat"
       },
       {
         "command": "keyllama.saveSession",
         "title": "Save Session to Database",
-        "category": "Keyllama"
+        "category": "CogNix"
       }
     ]
   },

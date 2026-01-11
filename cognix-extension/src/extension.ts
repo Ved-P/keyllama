@@ -149,7 +149,7 @@ export async function deactivate() {
             const analysis = await tracker.analyzeWithLLM();
 
             console.log('═══════════════════════════════════════════════════════════');
-            console.log('📊 Keyllama Final Human Likelihood Summary (LLM)');
+            console.log('📊 CogNix Final Human Likelihood Summary (LLM)');
             console.log('═══════════════════════════════════════════════════════════');
             console.log(`Human Likelihood Score: ${analysis.score}/100`);
             console.log('Reasons:');

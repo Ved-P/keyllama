@@ -1,6 +1,6 @@
-# keyllama README
+# CogNix
 
-This is the README for your extension "keyllama". After writing up a brief description, we recommend including the following sections.
+CogNix is an AI-assisted learning tool that helps educators understand how students use AI in their coding workflow. It tracks coding patterns and provides insights into the learning process.
 
 ## Features
 
