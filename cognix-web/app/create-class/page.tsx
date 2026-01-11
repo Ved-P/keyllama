@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { supabase } from "@/lib/supabase/client";
 
 /**
  * Builds a deterministic system prompt enforcing instructor-defined AI rules.
@@ -102,26 +101,32 @@ const CreateClassPage = () => {
     const systemPrompt = buildLLMSystemPrompt(className, selectedCapabilities);
 
     try {
-      const { data, error } = await supabase
-        .from("classes")
-        .upsert(
-          [
-            {
-              name: className,
-              system_prompt: systemPrompt,
-            },
-          ],
-          { onConflict: "name" } // ensure existing class names are updated
-        )
-        .select();
+      const response = await fetch('/api/classes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: className,
+          system_prompt: systemPrompt,
+        }),
+      });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      console.log("Class saved:", data);
-      alert("Class successfully created!");
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save class');
+      }
+
+      console.log('Class saved:', result.data);
+      alert(result.message || 'Class successfully saved!');
+      
+      // Optional: Reset form after successful save
+      setClassName('');
+      setSelectedCapabilities([...capabilities]);
     } catch (err) {
-      console.error("Error saving class:", err);
-      alert("Failed to save class. See console for details.");
+      console.error('Error saving class:', err);
+      alert(`Failed to save class: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
