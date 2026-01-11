@@ -4,24 +4,32 @@ import { askUserDetails } from './user-info';
 import { registerChatSidebar } from './chat-sidebar';
 
 let tracker: TelemetryTracker;
+let fullName: string = "";
+let className: string = "";
 
 export async function activate(context: vscode.ExtensionContext) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/26181097-d69d-4c61-b74d-01536fab53f4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'extension.ts:8',message:'activate called',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     try {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/26181097-d69d-4c61-b74d-01536fab53f4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'extension.ts:10',message:'calling askUserDetails',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
-        // #endregion
         const userDetails = await askUserDetails();
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/26181097-d69d-4c61-b74d-01536fab53f4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'extension.ts:14',message:'askUserDetails completed',data:{hasUserDetails:!!userDetails,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
-        // #endregion
+
         if (userDetails) {
             console.log("User:", userDetails.fullName, "Course:", userDetails.className);
+            fullName = userDetails.fullName;
+            className = userDetails.className;
         }
 
         tracker = new TelemetryTracker();
+
+        let studentSession = {
+            fullName,
+            className,
+            startTime: tracker.session.startTime,
+            inactiveTimeMs: tracker.session.inactiveTimeMs,
+            charsInserted: tracker.session.charsInserted,
+            charsDeleted: tracker.session.charsDeleted,
+            editEventsCount: tracker.session.editEvents.length,
+            pasteEventsCount: tracker.session.pasteEvents.length,
+            focusEventsCount: tracker.session.focusEvents.length
+        };
 
         context.subscriptions.push(
             vscode.workspace.onDidChangeTextDocument(e => {
