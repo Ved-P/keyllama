@@ -39,7 +39,7 @@ export default function ViewClassPage() {
         const response = await fetch("/api/classes");
         const result = await response.json();
         if (response.ok && result.data) {
-          const classNames = result.data.map((c: any) => c.name);
+          const classNames = result.data.map((c) => c.name);
           setClasses(classNames);
         }
       } catch (err) {
@@ -93,12 +93,12 @@ export default function ViewClassPage() {
                 View student activity and AI detection scores
               </p>
             </div>
-            <a
-              href="/"
+            <Button
+              onClick={() => window.location.href = '/'}
               className="text-blue-600 hover:text-blue-800 underline"
             >
               ← Back to Home
-            </a>
+            </Button>
           </div>
 
           {/* Class Selector */}
@@ -169,12 +169,15 @@ export default function ViewClassPage() {
                       </div>
 
                       {/* Human Likelihood Score Badge */}
-                      <div
-                        className={`px-4 py-2 rounded-lg font-bold text-2xl ${getScoreColor(
-                          session.analysis.score
-                        )}`}
-                      >
-                        {session.analysis.score}%
+                      <div className="">
+                        <div
+                          className={`px-4 py-2 rounded-lg font-bold text-2xl ${getScoreColor(
+                            session.analysis.score
+                          )}`}
+                        >
+                          {session.analysis.score}%
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Human Factor</p>
                       </div>
                     </div>
 
