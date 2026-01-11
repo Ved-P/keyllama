@@ -1,62 +1,143 @@
 import * as vscode from 'vscode';
-import { TelemetryTracker } from './tracker';
+import { TelemetryTracker, SessionStats } from './tracker';
 import { askUserDetails } from './user-info';
-import { registerChatSidebar } from './chat-sidebar';
+import { MongoClient, ServerApiVersion, Db } from 'mongodb';
+import { HumanLikelihoodAnalysis } from './llm';
+
+const uri = "mongodb+srv://patrickliu_db_user:passworducsb@cluster0.yycduow.mongodb.net/?appName=Cluster0";
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
+});
 
 let tracker: TelemetryTracker;
-let fullName: string = "";
-let className: string = "";
+let storedUserDetails: { fullName: string; className: string } | undefined;
 
-export async function activate(context: vscode.ExtensionContext) {
+/**
+ * Save session data to MongoDB
+ */
+async function saveSessionToMongoDB(
+    userDetails: { fullName: string; className: string } | undefined,
+    stats: SessionStats,
+    analysis: HumanLikelihoodAnalysis
+): Promise<void> {
     try {
-        const userDetails = await askUserDetails();
+        // Connect to MongoDB
+        await client.connect();
+        console.log("Connected to MongoDB!");
 
-        if (userDetails) {
-            console.log("User:", userDetails.fullName, "Course:", userDetails.className);
-            fullName = userDetails.fullName;
-            className = userDetails.className;
-        }
+        // Get the database
+        const db: Db = client.db("keyllama");
+        const collection = db.collection("sessions");
 
-        tracker = new TelemetryTracker();
+        // Prepare the data to save
+        const sessionData = {
+            userDetails: {
+                fullName: userDetails?.fullName || 'Anonymous',
+                className: userDetails?.className || 'Unknown',
+            },
 
-        let studentSession = {
-            fullName,
-            className,
-            startTime: tracker.session.startTime,
-            inactiveTimeMs: tracker.session.inactiveTimeMs,
-            charsInserted: tracker.session.charsInserted,
-            charsDeleted: tracker.session.charsDeleted,
-            editEventsCount: tracker.session.editEvents.length,
-            pasteEventsCount: tracker.session.pasteEvents.length,
-            focusEventsCount: tracker.session.focusEvents.length
+            stats: {
+                startTime: stats.startTime,
+                lastEventTime: stats.lastEventTime,
+                activeTimeMs: stats.activeTimeMs,
+                inactiveTimeMs: stats.inactiveTimeMs,
+                totalEditEvents: stats.totalEditEvents,
+                charsInserted: stats.charsInserted,
+                charsDeleted: stats.charsDeleted,
+                pasteEventsCount: stats.pasteEvents.length,
+                focusEventsCount: stats.focusEvents.length,
+            },
+            analysis: {
+                score: analysis.score,
+                reasons: analysis.reasons,
+            },
+            timestamp: new Date(),
         };
 
-        context.subscriptions.push(
-            vscode.workspace.onDidChangeTextDocument(e => {
-                e.contentChanges.forEach(change => tracker.recordChange(change));
-            })
-        );
+        // Insert the document
+        const result = await collection.insertOne(sessionData);
+        console.log(`Session saved to MongoDB with ID: ${result.insertedId}`);
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/26181097-d69d-4c61-b74d-01536fab53f4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'extension.ts:26',message:'calling registerChatSidebar',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2'})}).catch(()=>{});
-        // #endregion
-        // Register AI sidebar
-        registerChatSidebar(context, tracker);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/26181097-d69d-4c61-b74d-01536fab53f4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'extension.ts:29',message:'registerChatSidebar completed',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2'})}).catch(()=>{});
-        // #endregion
     } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/26181097-d69d-4c61-b74d-01536fab53f4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'extension.ts:32',message:'activate error',data:{error:String(error),timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
-        throw error;
+        console.error("Error saving to MongoDB:", error);
+    } finally {
+        // Close the connection
+        await client.close();
     }
+}
+
+export async function activate(context: vscode.ExtensionContext) {
+    // Get session info
+    const userDetails = await askUserDetails();
+    storedUserDetails = userDetails || undefined;  // Store it for later use
+
+    if (!userDetails) {
+        console.log("User canceled input");
+    } else {
+        console.log(userDetails.fullName, userDetails.className);
+    }
+
+    tracker = new TelemetryTracker();
+
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument((e) => {
+            for (const change of e.contentChanges) {
+                tracker.recordChange(change);
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('keyllama.showStats', async () => {
+            if (!tracker) { return; }
+
+            const stats = tracker.getSessionStats();
+            const analysis = await tracker.analyzeWithLLM();
+
+            vscode.window.showInformationMessage(
+                `Human Likelihood: ${analysis.score}%\n` +
+                `Reasons:\n• ${analysis.reasons.join('\n• ')}`
+            );
+        })
+    );
 }
 
 export async function deactivate() {
     if (tracker) {
-        const stats = tracker.getSessionStats();
-        const analysis = await tracker.analyzeWithLLM();
-        tracker.printSummary(stats, analysis);
+        try {
+            const stats = tracker.getSessionStats();
+            const analysis = await tracker.analyzeWithLLM();
+
+            console.log('═══════════════════════════════════════════════════════════');
+            console.log('📊 Keyllama Final Human Likelihood Summary (LLM)');
+            console.log('═══════════════════════════════════════════════════════════');
+            console.log(`Human Likelihood Score: ${analysis.score}/100`);
+            console.log('Reasons:');
+            analysis.reasons.forEach((reason, i) => {
+                console.log(`  ${i + 1}. ${reason}`);
+            });
+            console.log('');
+            console.log('Session Metrics:');
+            console.log(`  Total Edits: ${stats.totalEditEvents}`);
+            console.log(`  Characters Inserted: ${stats.charsInserted}`);
+            console.log(`  Characters Deleted: ${stats.charsDeleted}`);
+            console.log(`  Paste Events: ${stats.pasteEvents.length}`);
+            console.log(`  External Paste Events: ${stats.pasteEvents.filter((p) => p.external).length}`);
+            console.log(`  Focus Events: ${stats.focusEvents.length}`);
+            console.log(`  Active Time: ${Math.round(stats.activeTimeMs / 60000)} minutes`);
+            console.log(`  Inactive Time: ${Math.round(stats.inactiveTimeMs / 60000)} minutes`);
+            console.log('═══════════════════════════════════════════════════════════');
+
+            // Save session data to MongoDB
+            await saveSessionToMongoDB(storedUserDetails, stats, analysis);
+
+        } catch (err) {
+            console.error('Failed to get final LLM analysis:', err);
+        }
     }
 }
